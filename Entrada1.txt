@@ -1,0 +1,58 @@
+<Operacion= SUMA>
+    <Numero> 3.2 </Numero>
+    <Numero> 7.8 </Numero>
+    <Numero> 1 </Numero>
+</Operacion>
+
+<Operacion= RESTA>
+    <Numero> 50 </Numero>
+    <Numero> 12.75 </Numero>
+    <Numero> 0.5 </Numero>
+</Operacion>
+
+<Operacion= MULTIPLICACION>
+    <Numero> 6 </Numero>
+    <Numero> 2.5 </Numero>
+    <Numero> 3 </Numero>
+</Operacion>
+
+<Operacion= DIVISION>
+    <Numero> 81 </Numero>
+    <Numero> 3 </Numero>
+</Operacion>
+
+<Operacion= POTENCIA>
+    <P> 3 </P>
+    <Operacion= SUMA>
+        <Numero> 1.5 </Numero>
+        <Numero> 2.5 </Numero>
+    </Operacion>
+</Operacion>
+
+<Operacion= RAIZ>
+    <R> 5 </R>
+    <Numero> 243 </Numero>
+</Operacion>
+
+<Operacion= INVERSO>
+    <Operacion= MULTIPLICACION>
+        <Numero> 4 </Numero>
+        <Numero> 5 </Numero>
+    </Operacion>
+</Operacion>
+
+<Operacion= MOD>
+    <Numero> 58 </Numero>
+    <Numero> 9 </Numero>
+</Operacion>
+
+<Operacion= SUMA>
+    <Numero> 5 </Numero>
+    <Operacion= POTENCIA>
+        <P> 2 </P>
+        <Operacion= RAIZ>
+            <R> 3 </R>
+            <Numero> 125 </Numero>
+        </Operacion>
+    </Operacion>
+</Operacion>
