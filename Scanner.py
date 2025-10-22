@@ -131,7 +131,6 @@ def main():
             i += len("</Operacion>")
             continue
 
-        # <Numero> ... </Numero>
         if texto.startswith("<Numero>", i):
             i += len("<Numero>")
             contenido, i2 = leer_hasta(texto, i, "</Numero>")
@@ -154,7 +153,6 @@ def main():
     if pila_ops:
         errores.append(("Etiqueta(s) sin cerrar: Operacion", n))
 
-    # --------- Impresión (en orden de cierre) ----------
     print("Operaciones\n")
     contador_por_tipo = {}
     etiqueta_legible = {
