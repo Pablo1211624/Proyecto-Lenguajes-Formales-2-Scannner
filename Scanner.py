@@ -411,6 +411,14 @@ class interfazGrafica:
                         pilaOps[-1]["nums"].append(float(numtxt))
                 i = i2
                 continue
+            
+            if texto.startswith("<", i) and not texto.startswith(("<Operacion", "<Numero", "</Operacion>", "</Numero>"), i):
+                fin_etiqueta = texto.find(">", i)
+                if fin_etiqueta != -1:
+                    etiqueta = texto[i:fin_etiqueta+1]
+                    errores.append(("Etiqueta inválida", i, etiqueta))
+                    i = fin_etiqueta + 1
+                    continue
 
             i += 1
 
