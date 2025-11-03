@@ -451,7 +451,9 @@ class interfazGrafica:
                     "tipo": op, 
                     "nums": [], 
                     "tieneSubop": False,
-                    "id": contador_global
+                    "id": contador_global,
+                    "exp": None,
+                    "raiz_n": None
                 })
                 continue
 
@@ -463,13 +465,24 @@ class interfazGrafica:
                 actual = pilaOps.pop()
                 tipo = actual["tipo"]
                 nums = actual["nums"]
-                res = resultado_de(actual)
+                exp = actual.get("exp")
+                raiz_n = actual.get("raiz_n")
+                
+                res = resultado_de({
+                    "tipo": tipo,
+                    "nums": nums,
+                    "exp": exp,
+                    "raiz_n": raiz_n
+                })
+                
                 historico.append({
                     "tipo": tipo, 
                     "nums": nums[:], 
                     "res": res, 
                     "compleja": actual["tieneSubop"],
-                    "id": actual["id"]
+                    "id": actual["id"],
+                    "exp": exp,
+                    "raiz_n": raiz_n
                 })
                 if pilaOps:
                     pilaOps[-1]["nums"].append(res if res is not None else 0.0)
@@ -498,14 +511,14 @@ class interfazGrafica:
                 i += len("<P>")
                 contenido, i2 = leer_hasta(texto, i, "</P>")
                 if contenido is None:
-                    errores.append(("Falta </P>", i))
+                    errores.append(("Falta </P>", i, "</P>"))
                     break
                 val = contenido.strip()
                 if not dfa_numero(val):
-                    errores.append((f"Exponente <P> no es número válido: '{val}'", i))
+                    errores.append(("Exponente no válido", i, val))
                 else:
                     if not pilaOps:
-                        errores.append(("Etiqueta <P> fuera de una <Operacion>", i))
+                        errores.append(("<P> fuera de operación", i, "<P>"))
                     else:
                         pilaOps[-1]["exp"] = float(val)
                 i = i2
@@ -515,13 +528,14 @@ class interfazGrafica:
                 i += len("<R>")
                 contenido, i2 = leer_hasta(texto, i, "</R>")
                 if contenido is None:
-                    errores.append(("Falta </R>", i)); break
+                    errores.append(("Falta </R>", i, "</R>"))
+                    break
                 val = contenido.strip()
                 if not dfa_numero(val):
-                    errores.append((f"Índice de raíz <R> no es número válido: '{val}'", i))
+                    errores.append(("Índice de raíz no válido", i, val))
                 else:
                     if not pilaOps:
-                        errores.append(("Etiqueta <R> fuera de una <Operacion>", i))
+                        errores.append(("<R> fuera de operación", i, "<R>"))
                     else:
                         pilaOps[-1]["raiz_n"] = float(val)
                 i = i2
@@ -530,7 +544,7 @@ class interfazGrafica:
             i += 1
 
         if pilaOps:
-            errores.append(("Error", n, "Operacion"))
+            errores.append(("Etiquetas sin cerrar", n, "Operacion"))
 
         return {
             "historico": historico,
@@ -613,6 +627,9 @@ class interfazGrafica:
 
                 for op in resultado["historico"]:
                     tipo, nums, res, esCompleja = op["tipo"], op["nums"], op["res"], op["compleja"]
+                    exp = op.get("exp")
+                    raiz_n = op.get("raiz_n")
+                    
                     contadorPorTipo[tipo] = contadorPorTipo.get(tipo, 0) + 1
                     idx = contadorPorTipo[tipo]
                     
@@ -620,14 +637,29 @@ class interfazGrafica:
                     archivo.write(f"<h3>Operación {etiquetaLegible.get(tipo,tipo)} {idx}{suf}</h3>\n")
                     
                     simb = simbolo(tipo)
-                    if simb and len(nums) >= 2:
-                        archivo.write(f"<p>{nums[0]} {simb} {nums[1]} = {round(res,2) if res is not None else 'ERROR'}</p>\n")
-                    elif tipo == "RAIZ" and len(nums) >= 1:
-                        archivo.write(f"<p>√({nums[0]}) = {round(res,2) if res is not None else 'ERROR'}</p>\n")
+                    if tipo in {"SUMA","RESTA","MULTIPLICACION","DIVISION","MOD"} and simb and len(nums) >= 2:
+                        expr = f" {simb} ".join(str(x) for x in nums)
+                        archivo.write(f"<p>{expr} = {round(res,2) if res is not None else 'ERROR'}</p>\n")
+                    elif tipo == "POTENCIA":
+                        if exp is not None and len(nums) >= 1:
+                            archivo.write(f"<p>{nums[0]}^{exp} = {round(res,2) if res is not None else 'ERROR'}</p>\n")
+                        elif len(nums) == 2:
+                            archivo.write(f"<p>{nums[0]}^{nums[1]} = {round(res,2) if res is not None else 'ERROR'}</p>\n")
+                        else:
+                            archivo.write("<p>POTENCIA: bases insuficiente</p>\n")
+                    elif tipo == "RAIZ":
+                        if len(nums) >= 1:
+                            n = raiz_n if raiz_n is not None else 2
+                            if n == 2:
+                                archivo.write(f"<p>√({nums[0]}) = {round(res,2) if res is not None else 'ERROR'}</p>\n")
+                            else:
+                                archivo.write(f"<p>raíz_{int(n) if n.is_integer() else n}({nums[0]}) = {round(res,2) if res is not None else 'ERROR'}</p>\n")
+                        else:
+                            archivo.write("<p>RAIZ: radicando faltante</p>\n")
                     elif tipo == "INVERSO" and len(nums) >= 1:
                         archivo.write(f"<p>1/({nums[0]}) = {round(res,2) if res is not None else 'ERROR'}</p>\n")
                     else:
-                        archivo.write("<p>Ha ocurrido un error en el analisis, revisar html de errores</p>\n")
+                        archivo.write("<p>N hay operaciones suficientes</p>\n")
                     archivo.write("<br>\n")
             else:
                 archivo.write('<p>No se cumplio con el formato de las operaciones aritméticas. Cargar un archivo o copiar el formato</p>\n')
