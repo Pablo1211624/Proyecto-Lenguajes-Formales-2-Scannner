@@ -494,13 +494,38 @@ class interfazGrafica:
                 i = i2
                 continue
             
-            if texto.startswith("<", i) and not texto.startswith(("<Operacion", "<Numero", "</Operacion>", "</Numero>"), i):
-                fin_etiqueta = texto.find(">", i)
-                if fin_etiqueta != -1:
-                    etiqueta = texto[i:fin_etiqueta+1]
-                    errores.append(("Etiqueta inválida", i, etiqueta))
-                    i = fin_etiqueta + 1
-                    continue
+             if texto.startswith("<P>", i):
+            i += len("<P>")
+            contenido, i2 = leer_hasta(texto, i, "</P>")
+            if contenido is None:
+                errores.append(("Falta </P>", i))
+                break
+            val = contenido.strip()
+            if not dfa_numero(val):
+                errores.append((f"Exponente <P> no es número válido: '{val}'", i))
+            else:
+                if not pila_ops:
+                    errores.append(("Etiqueta <P> fuera de una <Operacion>", i))
+                else:
+                    pila_ops[-1]["exp"] = float(val)
+            i = i2
+            continue
+
+        if texto.startswith("<R>", i):
+            i += len("<R>")
+            contenido, i2 = leer_hasta(texto, i, "</R>")
+            if contenido is None:
+                errores.append(("Falta </R>", i)); break
+            val = contenido.strip()
+            if not dfa_numero(val):
+                errores.append((f"Índice de raíz <R> no es número válido: '{val}'", i))
+            else:
+                if not pila_ops:
+                    errores.append(("Etiqueta <R> fuera de una <Operacion>", i))
+                else:
+                    pila_ops[-1]["raiz_n"] = float(val)
+            i = i2
+            continue
 
             i += 1
 
