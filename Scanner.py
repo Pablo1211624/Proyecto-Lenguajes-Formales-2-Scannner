@@ -494,7 +494,7 @@ class interfazGrafica:
                 i = i2
                 continue
             
-             if texto.startswith("<P>", i):
+            if texto.startswith("<P>", i):
                 i += len("<P>")
                 contenido, i2 = leer_hasta(texto, i, "</P>")
                 if contenido is None:
