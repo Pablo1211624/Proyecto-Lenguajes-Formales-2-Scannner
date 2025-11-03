@@ -55,23 +55,57 @@ def leer_hasta(texto, i, token):
 def resultado_de(op):
     t = op["tipo"]
     nums = op["nums"]
-    if t == "SUMA" and len(nums) >= 2:
-        return nums[0] + nums[1]
-    if t == "RESTA" and len(nums) >= 2:
-        return nums[0] - nums[1]
-    if t == "MULTIPLICACION" and len(nums) >= 2:
-        return nums[0] * nums[1]
-    if t == "DIVISION" and len(nums) >= 2:
-        return (nums[0] / nums[1]) if nums[1] != 0 else float('inf')
-    if t == "POTENCIA" and len(nums) >= 2:
-        return nums[0] ** nums[1]
-    if t == "MOD" and len(nums) >= 2:
-        return nums[0] % nums[1]
-    if t == "RAIZ" and len(nums) >= 1:
-        return (nums[0] ** 0.5) if nums[0] >= 0 else float('nan')
-    if t == "INVERSO" and len(nums) >= 1:
+    exp = op.get("exp")
+    raiz_n = op.get("raiz_n")
+    if t == "SUMA":
+        return sum(nums) if nums else None
+    if t == "RESTA":
+        if not nums: return None
+        return nums[0] - sum(nums[1:]) if len(nums) > 1 else nums[0]
+    if t == "MULTIPLICACION":
+        if not nums: return None
+        acc = 1.0
+        for x in nums: acc *= x
+        return acc
+    if t == "DIVISION":
+        if not nums: return None
+        if len(nums) == 1: return float('inf') if nums[0] == 0 else nums[0]
+        acc = nums[0]
+        for x in nums[1:]:
+            if x == 0: return float('inf')
+            acc /= x
+        return acc
+    if t == "MOD":
+        if len(nums) < 2: return None
+        acc = nums[0]
+        for x in nums[1:]:
+            try:
+                acc = acc % x
+            except ZeroDivisionError:
+                return float('inf')
+        return acc
+    if t == "POTENCIA":
+        if exp is not None:
+            if not nums: return None   # falta base
+            return nums[0] ** exp
+        if len(nums) == 2:
+            return nums[0] ** nums[1]
+        return None
+    if t == "RAIZ":
+        if not nums: return None  # falta radicando
+        n = raiz_n if raiz_n is not None else 2.0  # por defecto raíz cuadrada
+        x = nums[0]
+        try:
+            # Si n es par y x<0 → NaN
+            if n % 2 == 0 and x < 0:
+                return float('nan')
+            return x ** (1.0 / n)
+        except Exception:
+            return float('nan')
+    if t == "INVERSO":
+        if not nums: return None
         return (1.0 / nums[0]) if nums[0] != 0 else float('inf')
-    return None  # insuficientes
+    return None
 
 def simbolo(t):
     return {
@@ -81,10 +115,10 @@ def simbolo(t):
         "DIVISION": "/",
         "POTENCIA": "^",
         "MOD": "%"
-    }.get(t, None)
+    }.get(t)
 
 def main():
-    ruta = "entrada.txt"
+    ruta = "Entrada1.txt"
     try:
         with open(ruta, "r", encoding="utf-8") as f:
             texto = f.read()
@@ -93,7 +127,7 @@ def main():
 
     i, n = 0, len(texto)
     errores = []
-    pila_ops = []   # cada item: {"tipo":..., "nums":[], "tiene_subop":False}
+    pila_ops = []   # cada operacion
     historico = []  # para imprimir en el orden de cierre
 
     while i < n:
@@ -115,7 +149,7 @@ def main():
             if i >= n or texto[i] != '>':
                 errores.append(("Falta '>' en <Operacion= ... >", i)); break
             i += 1
-            pila_ops.append({"tipo": op, "nums": [], "tiene_subop": False})
+            pila_ops.append({"tipo": op, "nums": [], "tiene_subop": False, "exp": None, "raiz_n": None})
             continue
 
         # </Operacion>
@@ -127,15 +161,48 @@ def main():
             actual = pila_ops.pop()
             tipo = actual["tipo"]
             nums = actual["nums"]
-            res = resultado_de(actual)   # <<< FIX
-            historico.append({"tipo": tipo, "nums": nums[:], "res": res, "compleja": actual["tiene_subop"]})
+            res = resultado_de(actual) 
+            historico.append({"tipo": tipo, "nums": nums[:], "res": res, "compleja": actual["tiene_subop"], "exp": actual.get("exp"),"raiz_n": actual.get("raiz_n")})
             if pila_ops:
                 pila_ops[-1]["nums"].append(res if res is not None else 0.0)
                 pila_ops[-1]["tiene_subop"] = True
             i += len("</Operacion>")
             continue
 
-        # <Numero> ... </Numero>
+        if texto.startswith("<P>", i):
+            i += len("<P>")
+            contenido, i2 = leer_hasta(texto, i, "</P>")
+            if contenido is None:
+                errores.append(("Falta </P>", i))
+                break
+            val = contenido.strip()
+            if not dfa_numero(val):
+                errores.append((f"Exponente <P> no es número válido: '{val}'", i))
+            else:
+                if not pila_ops:
+                    errores.append(("Etiqueta <P> fuera de una <Operacion>", i))
+                else:
+                    pila_ops[-1]["exp"] = float(val)
+            i = i2
+            continue
+
+        if texto.startswith("<R>", i):
+            i += len("<R>")
+            contenido, i2 = leer_hasta(texto, i, "</R>")
+            if contenido is None:
+                errores.append(("Falta </R>", i)); break
+            val = contenido.strip()
+            if not dfa_numero(val):
+                errores.append((f"Índice de raíz <R> no es número válido: '{val}'", i))
+            else:
+                if not pila_ops:
+                    errores.append(("Etiqueta <R> fuera de una <Operacion>", i))
+                else:
+                    pila_ops[-1]["raiz_n"] = float(val)
+            i = i2
+            continue
+    
+        # <Numero> </Numero>
         if texto.startswith("<Numero>", i):
             i += len("<Numero>")
             contenido, i2 = leer_hasta(texto, i, "</Numero>")
@@ -158,7 +225,6 @@ def main():
     if pila_ops:
         errores.append(("Etiqueta(s) sin cerrar: Operacion", n))
 
-    # --------- Impresión (en orden de cierre) ----------
     print("Operaciones\n")
     contador_por_tipo = {}
     etiqueta_legible = {
@@ -175,14 +241,30 @@ def main():
         print(f"Operación {etiqueta_legible.get(tipo,tipo)} {idx}{suf}")
 
         simb = simbolo(tipo)
-        if simb and len(nums) >= 2:
-            print(f"{nums[0]}{simb}{nums[1]} = {round(res,2)}\n")
-        elif tipo == "RAIZ" and len(nums) >= 1:
-            print(f"√({nums[0]}) = {round(res,2)}\n")
+        if tipo in {"SUMA","RESTA","MULTIPLICACION","DIVISION","MOD"} and simb and len(nums) >= 2:
+            expr = f" {simb} ".join(str(x) for x in nums)
+            print(f"{expr} = {round(res, 6)}\n")
+        elif tipo == "POTENCIA":
+            base = nums[0] if nums else None
+            if op.get("exp") is not None and base is not None:
+                print(f"{base}^{op['exp']} = {round(res, 6)}\n")
+            elif len(nums) == 2:
+                print(f"{nums[0]}^{nums[1]} = {round(res, 6)}\n")
+            else:
+                print("(POTENCIA: base/exp insuficiente)\n")
+        elif tipo == "RAIZ":
+            n = op.get("raiz_n", 2)
+            if nums:
+                if n == 2 or n == 2.0:
+                    print(f"√({nums[0]}) = {round(res, 6)}\n")
+                else:
+                    print(f"raíz_{n}({nums[0]}) = {round(res, 6)}\n")
+            else:
+                print("(RAIZ: radicando faltante)\n")
         elif tipo == "INVERSO" and len(nums) >= 1:
-            print(f"1/({nums[0]}) = {round(res,2)}\n")
+            print(f"1/({nums[0]}) = {round(res, 6)}\n")
         else:
-            print("(operadores insuficientes)\n")
+            print("(operadores insuficientes o aridad inválida)\n")
 
     if errores:
         print("ERRORES:")
